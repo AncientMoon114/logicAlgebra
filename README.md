@@ -14,6 +14,7 @@
  - 项目依赖: 见*requirements.txt*
 
  If you want to install the original code, run below in your terminal(virtual environment is preferred):
+ 
  如果您想获取源码，在您的终端中运行(建议在虚拟环境下操作):
 ```
 git clone https://github.com/AncientMoon114/logicAlgebra.git
