@@ -1,0 +1,14 @@
+# Python缓存
+__pycache__/
+*.pyc
+.venv/
+
+# 可执行文件
+dist/
+build/
+*.exe
+*.bin
+
+# IDE配置
+.vscode/
+.idea/

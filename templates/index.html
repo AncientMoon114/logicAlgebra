@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>逻辑代数化简器</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                 "Helvetica Neue", Arial, "Noto Sans SC", sans-serif;
+    background: #f4f5f7;
+    color: #1a1a2e;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 48px 20px;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 780px;
+  }
+
+  h1 {
+    font-size: 28px;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 8px;
+    color: #1a1a2e;
+  }
+
+  .subtitle {
+    text-align: center;
+    color: #6b7280;
+    font-size: 14px;
+    margin-bottom: 28px;
+  }
+
+  /* ---- 输入区 ---- */
+  .input-area {
+    background: #fff;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08);
+    margin-bottom: 16px;
+  }
+
+  .input-row {
+    display: flex;
+    gap: 10px;
+  }
+
+  .input-row input {
+    flex: 1;
+    padding: 12px 16px;
+    font-size: 16px;
+    font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    outline: none;
+    transition: border-color .2s;
+  }
+
+  .input-row input:focus {
+    border-color: #6366f1;
+  }
+
+  .input-row button {
+    padding: 12px 28px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+    background: #6366f1;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background .15s;
+    white-space: nowrap;
+  }
+
+  .input-row button:hover {
+    background: #4f46e5;
+  }
+
+  .input-row button:disabled {
+    background: #a5b4fc;
+    cursor: not-allowed;
+  }
+
+  /* ---- 错误提示 ---- */
+  .error-box {
+    background: #fef2f2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 14px;
+    margin-bottom: 16px;
+    display: none;
+    align-items: center;
+    gap: 8px;
+  }
+  .error-box.show { display: flex; }
+  .error-box .icon { font-size: 18px; }
+
+  /* ---- 结果区 ---- */
+  .results {
+    background: #fff;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08);
+    margin-bottom: 24px;
+    display: none;
+  }
+  .results.show { display: block; }
+
+  .result-item {
+    margin-bottom: 16px;
+  }
+  .result-item:last-child { margin-bottom: 0; }
+
+  .result-item label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    margin-bottom: 6px;
+  }
+
+  .result-value {
+    background: #f8f9fb;
+    border: 1px solid #eef0f4;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+    font-size: 15px;
+    word-break: break-all;
+    line-height: 1.5;
+    color: #1a1a2e;
+  }
+
+  /* ---- 格式说明 ---- */
+  .format-info {
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px 24px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  }
+
+  .format-info h2 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: #1a1a2e;
+  }
+
+  .format-info table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+
+  .format-info td {
+    padding: 6px 12px;
+    vertical-align: top;
+  }
+
+  .format-info td:first-child {
+    font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+    color: #6366f1;
+    white-space: nowrap;
+    width: 1%;
+  }
+
+  .format-info .note {
+    margin-top: 10px;
+    font-size: 13px;
+    color: #6b7280;
+  }
+
+  .format-info .example {
+    margin-top: 10px;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+    font-size: 14px;
+    color: #166534;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <h1>🧠 逻辑代数化简器</h1>
+  <p class="subtitle">输入逻辑表达式，自动化简为最简式、与非式、或非式</p>
+
+  <!-- 输入 -->
+  <div class="input-area">
+    <div class="input-row">
+      <input type="text" id="exprInput"
+             placeholder="请输入表达式，如 (a+b)'c 或 (a[or]b)[and]([not]c)"
+             autocomplete="off"
+             @keydown.enter="simplify()">
+      <button id="simplifyBtn" onclick="simplify()">化简</button>
+    </div>
+  </div>
+
+  <!-- 错误 -->
+  <div class="error-box" id="errorBox">
+    <span class="icon">⚠️</span>
+    <span id="errorText"></span>
+  </div>
+
+  <!-- 结果 -->
+  <div class="results" id="results">
+    <div class="result-item">
+      <label>最简表达式</label>
+      <div class="result-value" id="outSimplified">—</div>
+    </div>
+    <div class="result-item">
+      <label>最简与非表达式 (仅 NAND)</label>
+      <div class="result-value" id="outNand">—</div>
+    </div>
+    <div class="result-item">
+      <label>最简或非表达式 (仅 NOR)</label>
+      <div class="result-value" id="outNor">—</div>
+    </div>
+  </div>
+
+  <!-- 格式说明 -->
+  <div class="format-info">
+    <h2>输入格式说明</h2>
+    <p style="font-size:14px;margin-bottom:10px;color:#374151;">
+      支持两种格式，自动识别：
+    </p>
+
+    <h3 style="font-size:14px;font-weight:600;margin-bottom:6px;color:#6366f1;">📝 简写格式（推荐）</h3>
+    <table>
+      <tr><td><code>ab</code></td><td>变量并列 = 逻辑与（AND），如 <code>ab</code> = a ∧ b</td></tr>
+      <tr><td><code>a+b</code></td><td><code>+</code> = 逻辑或（OR），如 <code>a+b</code> = a ∨ b</td></tr>
+      <tr><td><code>a'</code></td><td>后缀 <code>'</code> = 逻辑非（NOT），如 <code>a'</code> = ¬a</td></tr>
+      <tr><td><code>(x)'</code></td><td>括号 + 后缀 <code>'</code>，如 <code>(ab)'</code> = ¬(a ∧ b)</td></tr>
+      <tr><td><code>( )</code></td><td>括号决定优先级</td></tr>
+    </table>
+
+    <h3 style="font-size:14px;font-weight:600;margin:12px 0 6px;color:#6366f1;">🔧 方括号格式（兼容旧版）</h3>
+    <table>
+      <tr><td><code>[and]</code></td><td>逻辑与（AND）</td></tr>
+      <tr><td><code>[or]</code></td><td>逻辑或（OR）</td></tr>
+      <tr><td><code>[not]</code></td><td>逻辑非（NOT）</td></tr>
+      <tr><td><code>[xor]</code></td><td>异或（XOR）</td></tr>
+      <tr><td><code>[xnor]</code></td><td>同或（XNOR）</td></tr>
+      <tr><td><code>( )</code></td><td>括号决定运算优先级</td></tr>
+      <tr><td><code>a, b, c …</code></td><td>单个字母表示变量（最多 5 个）</td></tr>
+    </table>
+
+    <p class="note">⚠ 简写优先级：<code>'</code>（最高）&gt; 并列(AND) &gt; <code>+</code>（最低）。多层嵌套请用括号明确。</p>
+
+    <div class="example">
+      📝 简写示例：<code>(a+b)'c</code> &nbsp;→&nbsp; ¬(a ∨ b) ∧ c<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+      <code>ab'+c</code> &nbsp;→&nbsp; (a ∧ ¬b) ∨ c<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+      <code>ab+cd</code> &nbsp;→&nbsp; (a ∧ b) ∨ (c ∧ d)
+    </div>
+    <div class="example" style="margin-top:6px;">
+      📝 方括号示例：<code>(a[or]b)[and]([not]c)</code> &nbsp;→&nbsp; (a ∨ b) ∧ ¬c
+    </div>
+  </div>
+
+</div>
+
+<script>
+async function simplify() {
+  const input = document.getElementById('exprInput');
+  const btn   = document.getElementById('simplifyBtn');
+  const errorBox = document.getElementById('errorBox');
+  const errorText = document.getElementById('errorText');
+  const results   = document.getElementById('results');
+
+  const expr = input.value.trim();
+  if (!expr) {
+    showError('请输入表达式');
+    return;
+  }
+
+  // 清旧状态
+  errorBox.classList.remove('show');
+  results.classList.remove('show');
+  btn.disabled = true;
+  btn.textContent = '化简中…';
+
+  try {
+    const resp = await fetch('/api/simplify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ expression: expr }),
+    });
+
+    const data = await resp.json();
+
+    if (!data.success) {
+      showError(data.error || '化简失败');
+      return;
+    }
+
+    document.getElementById('outSimplified').textContent = data.simplified;
+    document.getElementById('outNand').textContent       = data.nand;
+    document.getElementById('outNor').textContent        = data.nor;
+    results.classList.add('show');
+
+  } catch (err) {
+    showError('网络请求失败: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '化简';
+  }
+}
+
+function showError(msg) {
+  document.getElementById('errorText').textContent = msg;
+  document.getElementById('errorBox').classList.add('show');
+  document.getElementById('results').classList.remove('show');
+}
+
+// 回车触发
+document.getElementById('exprInput').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') simplify();
+});
+</script>
+
+</body>
+</html>
